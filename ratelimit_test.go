@@ -56,6 +56,7 @@ func Test_RateLimitFailure(t *testing.T) {
 
 	// call the first time to seed the client with the rate limit response
 	res, err := client.Get("http://example.com")
+	a.NoError(err)
 	a.True(ratelimit.RateLimit.IsThrottled())
 	a.Equal("LimitWindow (575), LimitDaily (30000), UsageWindow (601), UsageDaily (30100)", ratelimit.RateLimit.String())
 	a.NotNil(res)
@@ -63,6 +64,7 @@ func Test_RateLimitFailure(t *testing.T) {
 	// the second call will fail not with the Fault but a RateLimitError
 	//  (wrapped by url.Error) which can be inspected and used to throttle
 	res, err = client.Get("http://example.com")
+	a.Nil(res)
 	a.Error(err)
 	er := err.(*url.Error).Unwrap()
 	a.Error(er.(*transport.RateLimitError))
