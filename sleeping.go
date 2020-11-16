@@ -13,16 +13,11 @@ type SleepingTransport struct {
 
 // RoundTrip sleeps for the specified duration then invokes the delegated RoundTripper
 func (t *SleepingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	wait := make(chan bool)
-	go func() {
-		time.Sleep(t.Duration)
-		wait <- true
-	}()
 	ctx := req.Context()
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case <-wait:
+	case <-time.After(t.Duration):
 		return t.Transport.RoundTrip(req)
 	}
 }
