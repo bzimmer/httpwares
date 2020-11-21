@@ -1,11 +1,11 @@
-package transport_test
+package httpwares_test
 
 import (
 	"net/http"
 	"net/url"
 	"testing"
 
-	"github.com/bzimmer/transport"
+	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,14 +13,14 @@ func Test_RateLimitSuccess(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 	client := http.Client{
-		Transport: &transport.RateLimitTransport{
-			Transport: &transport.TestDataTransport{
+		Transport: &httpwares.RateLimitTransport{
+			Transport: &httpwares.TestDataTransport{
 				Filename:    "transport.json",
 				Status:      http.StatusOK,
 				ContentType: "application/json",
 				Responder: func(res *http.Response) error {
-					res.Header.Add(transport.HeaderRateLimit, "600,30000")
-					res.Header.Add(transport.HeaderRateUsage, "314,27536")
+					res.Header.Add(httpwares.HeaderRateLimit, "600,30000")
+					res.Header.Add(httpwares.HeaderRateUsage, "314,27536")
 					return nil
 				},
 			},
@@ -35,19 +35,19 @@ func Test_RateLimitFailure(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 
-	testdata := &transport.TestDataTransport{
+	testdata := &httpwares.TestDataTransport{
 		Filename:    "exceeded_rate_limit.json",
 		Status:      http.StatusTooManyRequests,
 		ContentType: "application/json",
 		Responder: func(res *http.Response) error {
-			res.Header.Add(transport.HeaderRateLimit, "575,30000")
-			res.Header.Add(transport.HeaderRateUsage, "601,30100")
+			res.Header.Add(httpwares.HeaderRateLimit, "575,30000")
+			res.Header.Add(httpwares.HeaderRateUsage, "601,30100")
 			return nil
 		},
 	}
-	ratelimit := &transport.RateLimitTransport{
+	ratelimit := &httpwares.RateLimitTransport{
 		Transport: testdata,
-		RateLimit: &transport.RateLimit{},
+		RateLimit: &httpwares.RateLimit{},
 	}
 
 	client := http.Client{
@@ -67,9 +67,9 @@ func Test_RateLimitFailure(t *testing.T) {
 	a.Nil(res)
 	a.Error(err)
 	er := err.(*url.Error).Unwrap()
-	a.Error(er.(*transport.RateLimitError))
+	a.Error(er.(*httpwares.RateLimitError))
 	a.Equal("exceeded rate limit", er.Error())
-	r := (er.(*transport.RateLimitError)).RateLimit
+	r := (er.(*httpwares.RateLimitError)).RateLimit
 	a.Equal(30000, r.LimitDaily)
 	a.Equal(601, r.UsageWindow)
 	a.Equal(104, r.PercentWindow())

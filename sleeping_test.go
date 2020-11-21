@@ -1,4 +1,4 @@
-package transport_test
+package httpwares_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bzimmer/transport"
+	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,9 +15,9 @@ func TestTimeout(t *testing.T) {
 	a := assert.New(t)
 
 	client := http.Client{
-		Transport: &transport.SleepingTransport{
+		Transport: &httpwares.SleepingTransport{
 			Duration: time.Millisecond * 100,
-			Transport: &transport.TestDataTransport{
+			Transport: &httpwares.TestDataTransport{
 				Status:      http.StatusOK,
 				Filename:    "transport.json",
 				ContentType: "application/json",

@@ -1,4 +1,4 @@
-package transport_test
+package httpwares_test
 
 import (
 	"errors"

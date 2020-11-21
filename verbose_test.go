@@ -1,4 +1,4 @@
-package transport_test
+package httpwares_test
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bzimmer/transport"
+	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,29 +16,29 @@ func Test_VerboseTransport(t *testing.T) {
 	a := assert.New(t)
 
 	tests := []http.RoundTripper{
-		&transport.VerboseTransport{
-			Transport: &transport.TestDataTransport{
+		&httpwares.VerboseTransport{
+			Transport: &httpwares.TestDataTransport{
 				Filename:    "transport.txt",
 				Status:      http.StatusOK,
 				ContentType: "text/plain",
 			},
 		},
-		&transport.VerboseTransport{
-			Transport: &transport.TestDataTransport{
+		&httpwares.VerboseTransport{
+			Transport: &httpwares.TestDataTransport{
 				Filename:    "transport.txt",
 				Status:      http.StatusOK,
 				ContentType: "text/plain",
 			},
 		},
-		&transport.VerboseTransport{
-			Transport: &transport.TestDataTransport{
+		&httpwares.VerboseTransport{
+			Transport: &httpwares.TestDataTransport{
 				Filename:    "transport.json",
 				Status:      http.StatusOK,
 				ContentType: "application/json; charset=utf-8",
 			},
 		},
-		&transport.VerboseTransport{
-			Transport: &transport.TestDataTransport{
+		&httpwares.VerboseTransport{
+			Transport: &httpwares.TestDataTransport{
 				Filename:    "",
 				Status:      http.StatusNoContent,
 				ContentType: "application/foobar; charset=utf-16",
@@ -77,8 +77,8 @@ func Test_VerboseLoggingError(t *testing.T) {
 	a := assert.New(t)
 
 	client := http.Client{
-		Transport: &transport.VerboseTransport{
-			Transport: &transport.TestDataTransport{
+		Transport: &httpwares.VerboseTransport{
+			Transport: &httpwares.TestDataTransport{
 				Filename:    "",
 				Status:      http.StatusNoContent,
 				ContentType: "text/plain",

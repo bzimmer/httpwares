@@ -1,3 +1,5 @@
+github.com/bzimmer/transport v0.0.0-20201116154911-4723f0ce61ec h1:MTI8pSttDfJv7LtocLCde1PTQGmi95MUf8SvDGNWjX8=
+github.com/bzimmer/transport v0.0.0-20201116154911-4723f0ce61ec/go.mod h1:hIOck7mOJFUhEau55/Ru8fuq7qO1zxbZAenpMExpPCA=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/color v1.10.0 h1:s36xzo75JdqLaaWoiEHk767eHiwo0598uUxyfiPkDsg=
