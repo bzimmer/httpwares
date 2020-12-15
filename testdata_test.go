@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bzimmer/transport"
+	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func Test_TestDataTransport(t *testing.T) {
 
 	for _, test := range tests {
 		client := http.Client{
-			Transport: &transport.TestDataTransport{
+			Transport: &httpwares.TestDataTransport{
 				Filename:    test[0],
 				Status:      http.StatusOK,
 				ContentType: "text/plain",
@@ -38,7 +38,7 @@ func Test_TestDataTransport(t *testing.T) {
 	}
 
 	client := http.Client{
-		Transport: &transport.TestDataTransport{
+		Transport: &httpwares.TestDataTransport{
 			Filename:    "~garbage~",
 			Status:      http.StatusOK,
 			ContentType: "text/plain",
@@ -53,7 +53,7 @@ func Test_TestRequesterResponder(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 
-	p := &transport.TestDataTransport{
+	p := &httpwares.TestDataTransport{
 		Filename:    "transport.txt",
 		Status:      http.StatusOK,
 		ContentType: "text/plain",

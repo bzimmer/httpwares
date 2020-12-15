@@ -1,76 +1,52 @@
 package httpwares_test
 
 import (
+	"context"
 	"net/http"
-	"net/url"
 	"testing"
+	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_RateLimitSuccess(t *testing.T) {
+func TestRateLimit(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
+
+	limiter := rate.NewLimiter(rate.Every(1*time.Minute), 1)
 	client := http.Client{
 		Transport: &httpwares.RateLimitTransport{
+			Limiter: limiter,
 			Transport: &httpwares.TestDataTransport{
-				Filename:    "transport.json",
 				Status:      http.StatusOK,
+				Filename:    "transport.json",
 				ContentType: "application/json",
-				Responder: func(res *http.Response) error {
-					res.Header.Add(httpwares.HeaderRateLimit, "600,30000")
-					res.Header.Add(httpwares.HeaderRateUsage, "314,27536")
-					return nil
-				},
-			},
-		},
+			}},
 	}
-	res, err := client.Get("http://example.com")
+
+	ctx := context.Background()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://example.com", nil)
+	a.NoError(err)
+	a.NotNil(req)
+
+	res, err := client.Do(req)
 	a.NoError(err)
 	a.NotNil(res)
-}
 
-func Test_RateLimitFailure(t *testing.T) {
-	t.Parallel()
-	a := assert.New(t)
+	ctx = context.Background()
+	ctx, cancel := context.WithTimeout(ctx, time.Millisecond*250)
+	defer cancel()
 
-	testdata := &httpwares.TestDataTransport{
-		Filename:    "exceeded_rate_limit.json",
-		Status:      http.StatusTooManyRequests,
-		ContentType: "application/json",
-		Responder: func(res *http.Response) error {
-			res.Header.Add(httpwares.HeaderRateLimit, "575,30000")
-			res.Header.Add(httpwares.HeaderRateUsage, "601,30100")
-			return nil
-		},
-	}
-	ratelimit := &httpwares.RateLimitTransport{
-		Transport: testdata,
-		RateLimit: &httpwares.RateLimit{},
-	}
-
-	client := http.Client{
-		Transport: ratelimit,
-	}
-
-	// call the first time to seed the client with the rate limit response
-	res, err := client.Get("http://example.com")
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, "http://example.com", nil)
 	a.NoError(err)
-	a.True(ratelimit.RateLimit.IsThrottled())
-	a.Equal("LimitWindow (575), LimitDaily (30000), UsageWindow (601), UsageDaily (30100)", ratelimit.RateLimit.String())
-	a.NotNil(res)
+	a.NotNil(req)
 
-	// the second call will fail not with the Fault but a RateLimitError
-	//  (wrapped by url.Error) which can be inspected and used to throttle
-	res, err = client.Get("http://example.com")
-	a.Nil(res)
+	// rate: Wait(n=1) would exceed context deadline
+	res, err = client.Do(req)
 	a.Error(err)
-	er := err.(*url.Error).Unwrap()
-	a.Error(er.(*httpwares.RateLimitError))
-	a.Equal("exceeded rate limit", er.Error())
-	r := (er.(*httpwares.RateLimitError)).RateLimit
-	a.Equal(30000, r.LimitDaily)
-	a.Equal(601, r.UsageWindow)
-	a.Equal(104, r.PercentWindow())
+	a.Nil(res)
 }

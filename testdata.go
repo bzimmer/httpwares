@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 )
 
-// Requester .
+// Requester is a callback for http requests
 type Requester func(*http.Request) error
 
-// Responder .
+// Responder is a callback for http responses
 type Responder func(*http.Response) error
 
-// TestDataTransport .
+// TestDataTransport simplifies mocking http round trips
 type TestDataTransport struct {
 	Status      int
 	Filename    string
@@ -22,7 +22,7 @@ type TestDataTransport struct {
 	Responder   Responder
 }
 
-// RoundTrip .
+// RoundTrip responds to requests with mocked data
 func (t *TestDataTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var (
 		err  error
@@ -44,8 +44,9 @@ func (t *TestDataTransport) RoundTrip(req *http.Request) (*http.Response, error)
 		data = make([]byte, 0)
 	}
 
-	header := make(http.Header)
-	header.Set("Content-Type", t.ContentType)
+	header := http.Header{
+		"Content-Type": []string{t.ContentType},
+	}
 
 	res := &http.Response{
 		StatusCode:    t.Status,

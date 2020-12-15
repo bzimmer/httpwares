@@ -41,6 +41,7 @@ func (t *VerboseTransport) isText(header http.Header) bool {
 	case "application/ld+json":
 	case "application/geojson":
 	case "application/geo+json":
+	case "application/x-www-form-urlencoded":
 	default:
 		return false
 	}
