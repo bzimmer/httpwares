@@ -14,8 +14,14 @@ type RateLimitTransport struct {
 
 // RoundTrip executes requests within the rate limit
 func (t *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if err := t.Limiter.Wait(req.Context()); err != nil {
-		return nil, err
+	if t.Limiter != nil {
+		if err := t.Limiter.Wait(req.Context()); err != nil {
+			return nil, err
+		}
 	}
-	return t.Transport.RoundTrip(req)
+	rt := t.Transport
+	if rt == nil {
+		rt = http.DefaultTransport
+	}
+	return rt.RoundTrip(req)
 }

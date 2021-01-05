@@ -28,7 +28,6 @@ func TestRateLimit(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://example.com", nil)
 	a.NoError(err)
 	a.NotNil(req)
@@ -49,4 +48,16 @@ func TestRateLimit(t *testing.T) {
 	res, err = client.Do(req)
 	a.Error(err)
 	a.Nil(res)
+
+	client = http.Client{
+		Transport: &httpwares.RateLimitTransport{
+			Transport: &httpwares.TestDataTransport{
+				Status:      http.StatusOK,
+				Filename:    "transport.json",
+				ContentType: "application/json",
+			}},
+	}
+	res, err = client.Do(req)
+	a.NoError(err)
+	a.NotNil(res)
 }
