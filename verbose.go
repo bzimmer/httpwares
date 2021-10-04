@@ -1,23 +1,15 @@
 package httpwares
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strings"
-
-	"github.com/fatih/color"
 )
 
-var (
-	// FgRequest is the color of the request
-	FgRequest = color.New(color.FgGreen)
-
-	// FgResponse is the color of the response
-	FgResponse = color.New(color.FgYellow)
-)
-
-// VerboseTransport .
+// VerboseTransport logs the request and response
 type VerboseTransport struct {
 	Writer    io.Writer
 	Transport http.RoundTripper
@@ -48,23 +40,29 @@ func (t *VerboseTransport) isText(header http.Header) bool {
 	return true
 }
 
-// RoundTrip .
+// RoundTrip is a logging RoundTripper
 func (t *VerboseTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	writer := t.Writer
 	if writer == nil {
-		writer = color.Error
+		writer = os.Stderr
 	}
-	transport := http.DefaultTransport
-	if t.Transport != nil {
-		transport = t.Transport
+	transport := t.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
 	}
-	dump, _ := httputil.DumpRequestOut(req, t.isText(req.Header))
-	FgRequest.Fprintln(writer, string(dump))
+	out, err := httputil.DumpRequestOut(req, t.isText(req.Header))
+	if err != nil {
+		return nil, err
+	}
+	fmt.Fprintln(writer, string(out))
 	res, err := transport.RoundTrip(req)
 	if err != nil {
 		return res, err
 	}
-	dump, _ = httputil.DumpResponse(res, t.isText(res.Header))
-	FgResponse.Fprintln(writer, string(dump))
+	out, err = httputil.DumpResponse(res, t.isText(res.Header))
+	if err != nil {
+		return nil, err
+	}
+	fmt.Fprintln(writer, string(out))
 	return res, err
 }
