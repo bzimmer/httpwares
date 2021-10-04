@@ -17,7 +17,6 @@ tasks:
   lint:
     desc: Runs golint
     cmds:
-      - golint {{catLines .GO_PACKAGES}}
       - golangci-lint -v run
 
   vet:
