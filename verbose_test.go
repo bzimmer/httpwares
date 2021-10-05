@@ -86,8 +86,8 @@ func Test_VerboseLoggingError(t *testing.T) {
 					return errors.New("argh")
 				},
 			}}}
-	res, err := client.Get("example.com")
+	res, err := client.Get("http://example.com")
 	a.Error(err)
 	a.Nil(res)
-	a.Equal(`Get "example.com": argh`, err.Error())
+	a.Equal(`Get "http://example.com": argh`, err.Error())
 }
