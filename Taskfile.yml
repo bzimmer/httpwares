@@ -42,5 +42,6 @@ tasks:
 
   snapshot:
     desc: Build a snapshot
+    deps: [test, lint]
     cmds:
       - goreleaser --debug release --snapshot --rm-dist

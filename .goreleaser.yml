@@ -1,6 +1,6 @@
 before:
   hooks:
-    - task lint test
+    - task test
 builds:
   - skip: true
 archives:
