@@ -2,8 +2,8 @@ package httpwares
 
 import (
 	"bytes"
-	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 )
 
@@ -24,40 +24,25 @@ type TestDataTransport struct {
 
 // RoundTrip responds to requests with mocked data
 func (t *TestDataTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	var (
-		err  error
-		data []byte
-	)
 	if t.Requester != nil {
-		err = t.Requester(req)
-		if err != nil {
+		if err := t.Requester(req); err != nil {
 			return nil, err
 		}
+	}
+	rec := new(httptest.ResponseRecorder)
+	if t.ContentType != "" {
+		rec.Header().Set("Content-Type", t.ContentType)
 	}
 	if t.Filename != "" {
-		filename := filepath.Join("testdata", t.Filename)
-		data, err = ioutil.ReadFile(filename)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		data = make([]byte, 0)
+		rec.Body = new(bytes.Buffer)
+		http.ServeFile(rec, req, filepath.Join("testdata", t.Filename))
 	}
-
-	header := http.Header{
-		"Content-Type": []string{t.ContentType},
-	}
-
-	res := &http.Response{
-		StatusCode:    t.Status,
-		ContentLength: int64(len(data)),
-		Body:          ioutil.NopCloser(bytes.NewBuffer(data)),
-		Header:        header,
-		Request:       req,
+	res := rec.Result()
+	if t.Status > 0 {
+		res.StatusCode = t.Status
 	}
 	if t.Responder != nil {
-		err = t.Responder(res)
-		if err != nil {
+		if err := t.Responder(res); err != nil {
 			return nil, err
 		}
 	}

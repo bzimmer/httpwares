@@ -1,5 +1,7 @@
+## HTTP Transports
 
-### Transports
+[![build](https://github.com/bzimmer/httpwares/actions/workflows/build.yaml/badge.svg)](https://github.com/bzimmer/httpwares)
+[![codecov](https://codecov.io/gh/bzimmer/httpwares/branch/master/graph/badge.svg?token=JBACLW92NN)](https://codecov.io/gh/bzimmer/httpwares)
 
 A collection of useful `http.RoundTripper`s:
 

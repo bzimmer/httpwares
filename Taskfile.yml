@@ -14,21 +14,20 @@ tasks:
     cmds:
       - task: test
 
+  dist:
+    cmds:
+      - mkdir -p {{.DIST}}
+
   lint:
     desc: Runs golint
     cmds:
       - golangci-lint -v run
 
-  vet:
-    desc: Runs golint
-    cmds:
-      - go vet {{catLines .GO_PACKAGES}}
-
   test:
-    desc: Run all tests
+    desc: Run tests
+    deps: [dist]
     cmds:
-      - mkdir -p {{.DIST}}
-      - go test -covermode count -coverprofile {{.DIST}}/coverage.txt {{catLines .GO_PACKAGES}}
+      - go test {{.CLI_ARGS}} -race -count=1 -covermode atomic -coverprofile {{.DIST}}/coverage.txt ./...
 
   cover:
     desc: Visualize test coverage
@@ -40,4 +39,8 @@ tasks:
     desc: Remove build artifacts
     cmds:
       - rm -rf {{.DIST}}
-      - rm -rf .task
+
+  snapshot:
+    desc: Build a snapshot
+    cmds:
+      - goreleaser --debug release --snapshot --rm-dist

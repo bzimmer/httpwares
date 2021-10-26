@@ -35,6 +35,7 @@ func TestRateLimit(t *testing.T) {
 	res, err := client.Do(req)
 	a.NoError(err)
 	a.NotNil(res)
+	a.NoError(res.Body.Close())
 
 	ctx = context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Millisecond*250)
@@ -48,6 +49,9 @@ func TestRateLimit(t *testing.T) {
 	res, err = client.Do(req)
 	a.Error(err)
 	a.Nil(res)
+	if res != nil {
+		a.NoError(res.Body.Close())
+	}
 
 	client = http.Client{
 		Transport: &httpwares.RateLimitTransport{
@@ -60,4 +64,5 @@ func TestRateLimit(t *testing.T) {
 	res, err = client.Do(req)
 	a.NoError(err)
 	a.NotNil(res)
+	a.NoError(res.Body.Close())
 }

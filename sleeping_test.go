@@ -36,6 +36,9 @@ func TestTimeout(t *testing.T) {
 	res, err := client.Do(req)
 	a.Error(err)
 	a.Nil(res)
+	if res != nil {
+		a.NoError(res.Body.Close())
+	}
 
 	// timeout gt sleep => success
 	ctx = context.Background()
@@ -49,4 +52,5 @@ func TestTimeout(t *testing.T) {
 	res, err = client.Do(req)
 	a.NoError(err)
 	a.NotNil(res)
+	a.NoError(res.Body.Close())
 }

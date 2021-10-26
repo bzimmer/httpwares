@@ -1,93 +1,97 @@
 package httpwares_test
 
 import (
+	"bytes"
+	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_VerboseTransport(t *testing.T) {
-	t.Parallel()
+func TestVerboseTransport(t *testing.T) {
 	a := assert.New(t)
 
-	tests := []http.RoundTripper{
-		&httpwares.VerboseTransport{
-			Transport: &httpwares.TestDataTransport{
-				Filename:    "transport.txt",
-				Status:      http.StatusOK,
-				ContentType: "text/plain",
-			},
+	tests := []struct {
+		name        string
+		filename    string
+		status      int
+		contenttype string
+		body        string
+		err         string
+		writer      io.Writer
+		requester   httpwares.Requester
+	}{
+		{
+			name:        "plain no writer",
+			filename:    "transport.txt",
+			status:      http.StatusOK,
+			contenttype: "text/plain",
 		},
-		&httpwares.VerboseTransport{
-			Transport: &httpwares.TestDataTransport{
-				Filename:    "transport.txt",
-				Status:      http.StatusOK,
-				ContentType: "text/plain",
-			},
+		{
+			name:        "plain with writer",
+			filename:    "transport.txt",
+			status:      http.StatusOK,
+			contenttype: "text/plain",
+			writer:      new(bytes.Buffer),
+			body:        "The mountains are calling & I must go & I will work on while I can, studying incessantly.",
 		},
-		&httpwares.VerboseTransport{
-			Transport: &httpwares.TestDataTransport{
-				Filename:    "transport.json",
-				Status:      http.StatusOK,
-				ContentType: "application/json; charset=utf-8",
-			},
+		{
+			name:        "json",
+			filename:    "transport.json",
+			status:      http.StatusOK,
+			contenttype: "application/json; charset=utf-8",
+			writer:      new(bytes.Buffer),
+			body:        `"quote": "The mountains are calling & I must go & I will work on while I can, studying incessantly."`,
 		},
-		&httpwares.VerboseTransport{
-			Transport: &httpwares.TestDataTransport{
-				Filename:    "",
-				Status:      http.StatusNoContent,
-				ContentType: "application/foobar; charset=utf-16",
+		{
+			name:        "empty",
+			filename:    "",
+			status:      http.StatusNoContent,
+			contenttype: "application/foobar; charset=utf-16",
+		},
+		{
+			name: "error",
+			err:  "argh",
+			requester: func(req *http.Request) error {
+				return errors.New("argh")
 			},
 		},
 	}
-	for i, transport := range tests {
-		client := http.Client{
-			Transport: transport,
-		}
-		res, err := client.Get("http://example.com")
-		a.NoError(err)
-		a.NotNil(res)
 
-		body, err := ioutil.ReadAll(res.Body)
-		a.NoError(err)
-		a.NotNil(res)
-
-		var quote string
-		switch i {
-		case 2:
-			quote = `{
-    "quote": "The mountains are calling & I must go & I will work on while I can, studying incessantly."
-}`
-		case 3:
-			quote = ""
-		default:
-			quote = "The mountains are calling & I must go & I will work on while I can, studying incessantly."
-		}
-		a.Equal(quote, strings.Trim(string(body), "\n"))
-	}
-}
-
-func Test_VerboseLoggingError(t *testing.T) {
-	t.Parallel()
-	a := assert.New(t)
-
-	client := http.Client{
-		Transport: &httpwares.VerboseTransport{
-			Transport: &httpwares.TestDataTransport{
-				Filename:    "",
-				Status:      http.StatusNoContent,
-				ContentType: "text/plain",
-				Requester: func(req *http.Request) error {
-					return errors.New("argh")
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			v := &httpwares.VerboseTransport{
+				Writer: tt.writer,
+				Transport: &httpwares.TestDataTransport{
+					Filename:    tt.filename,
+					ContentType: tt.contenttype,
+					Status:      tt.status,
+					Requester:   tt.requester,
 				},
-			}}}
-	res, err := client.Get("http://example.com")
-	a.Error(err)
-	a.Nil(res)
-	a.Equal(`Get "http://example.com": argh`, err.Error())
+			}
+			ctx := context.Background()
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://example.com", nil)
+			a.NoError(err)
+			a.NotNil(req)
+			client := http.Client{Transport: v}
+			res, err := client.Do(req)
+			if tt.err != "" {
+				a.Error(err)
+				a.Nil(res)
+				a.Contains(err.Error(), tt.err)
+				return
+			}
+			a.NoError(err)
+			a.NotNil(res)
+			defer res.Body.Close()
+			if tt.writer != nil && tt.body != "" {
+				a.Contains(tt.writer.(*bytes.Buffer).String(), tt.body)
+			}
+		})
+	}
 }
