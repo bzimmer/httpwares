@@ -1,89 +1,96 @@
 package httpwares_test
 
 import (
+	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
-	"strings"
 	"testing"
 
-	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bzimmer/httpwares"
 )
 
-func Test_TestDataTransport(t *testing.T) {
+func TestRequesterResponder(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 
-	tests := [][]string{
-		{"transport.txt", `The mountains are calling & I must go & I will work on while I can, studying incessantly.`},
-		{"", ""}}
-
-	for _, test := range tests {
-		client := http.Client{
-			Transport: &httpwares.TestDataTransport{
-				Filename:    test[0],
-				Status:      http.StatusOK,
-				ContentType: "text/plain",
+	tests := []struct {
+		name, err, filename, contents string
+		status                        int
+		requester                     httpwares.Requester
+		responder                     httpwares.Responder
+	}{
+		{
+			name: "empty",
+		},
+		{
+			name:     "valid",
+			filename: "transport.txt",
+			contents: `The mountains are calling & I must go & I will work on while I can, studying incessantly.`,
+		},
+		{
+			name:     "valid filename but different status code",
+			filename: "transport.txt",
+			contents: `The mountains are calling & I must go & I will work on while I can, studying incessantly.`,
+			status:   http.StatusBadRequest,
+		},
+		{
+			name: "requester error",
+			err:  "foo",
+			requester: func(req *http.Request) error {
+				return errors.New("foo")
 			},
-		}
-		res, err := client.Get("http://example.com")
-		a.NoError(err)
-		a.NotNil(res)
-
-		body, err := ioutil.ReadAll(res.Body)
-		a.NoError(err)
-		a.NotNil(res)
-		a.Equal(test[1], strings.Trim(string(body), "\n"))
-	}
-
-	client := http.Client{
-		Transport: &httpwares.TestDataTransport{
-			Filename:    "~garbage~",
-			Status:      http.StatusOK,
-			ContentType: "text/plain",
+		},
+		{
+			name: "responder error",
+			err:  "bar",
+			responder: func(res *http.Response) error {
+				return errors.New("bar")
+			},
 		},
 	}
-	res, err := client.Get("http://example.com")
-	a.Error(err)
-	a.Nil(res)
-}
 
-func Test_TestRequesterResponder(t *testing.T) {
-	t.Parallel()
-	a := assert.New(t)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			var data []byte
+			status := http.StatusOK
+			if tt.status > 0 {
+				status = tt.status
+			}
+			p := &httpwares.TestDataTransport{
+				Filename:    "transport.txt",
+				Status:      status,
+				ContentType: "text/plain",
+				Requester:   tt.requester,
+				Responder:   tt.responder,
+			}
+			ctx := context.Background()
+			client := http.Client{Transport: p}
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://example.com", nil)
+			a.NoError(err)
+			a.NotNil(req)
 
-	p := &httpwares.TestDataTransport{
-		Filename:    "transport.txt",
-		Status:      http.StatusOK,
-		ContentType: "text/plain",
-		Requester: func(req *http.Request) error {
-			return nil
-		},
-		Responder: func(res *http.Response) error {
-			return nil
-		},
+			res, err := client.Do(req)
+			if tt.err == "" {
+				a.NoError(err)
+				a.NotNil(res)
+				a.Equal(status, res.StatusCode)
+				defer res.Body.Close()
+				data, err = io.ReadAll(res.Body)
+				a.NoError(err)
+				a.NotNil(data)
+				a.Contains(string(data), tt.contents)
+			} else {
+				a.Error(err)
+				a.Nil(res)
+				a.Contains(err.Error(), tt.err)
+				if res != nil {
+					a.NoError(res.Body.Close())
+				}
+			}
+		})
 	}
-	client := http.Client{
-		Transport: p,
-	}
-	res, err := client.Get("http://example.com")
-	a.NoError(err)
-	a.NotNil(res)
-
-	p.Responder = nil
-	p.Requester = func(req *http.Request) error {
-		return errors.New("foo")
-	}
-	res, err = client.Get("http://example.com")
-	a.Error(err)
-	a.Nil(res)
-
-	p.Requester = nil
-	p.Responder = func(res *http.Response) error {
-		return errors.New("bar")
-	}
-	res, err = client.Get("http://example.com")
-	a.Error(err)
-	a.Nil(res)
 }
