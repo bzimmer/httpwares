@@ -1,10 +1,10 @@
 module github.com/bzimmer/httpwares
 
-go 1.17
+go 1.20
 
 require (
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
+	golang.org/x/time v0.3.0
 )
 
 require (

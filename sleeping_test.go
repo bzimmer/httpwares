@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bzimmer/httpwares"
 )
 
 func TestTimeout(t *testing.T) {

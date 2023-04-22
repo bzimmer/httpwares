@@ -55,6 +55,7 @@ func TestRequesterResponder(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var data []byte
 			status := http.StatusOK
 			if tt.status > 0 {
