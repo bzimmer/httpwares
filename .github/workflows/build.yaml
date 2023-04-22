@@ -1,0 +1,19 @@
+name: build
+
+on:
+  push
+
+permissions:
+  contents: read
+
+jobs:
+
+  build:
+    uses: bzimmer/actions/.github/workflows/build.yaml@main
+    with:
+      skipBuild: false
+      skipCoverage: false
+    secrets: inherit
+
+  vuln:
+    uses: bzimmer/actions/.github/workflows/vuln.yaml@main
