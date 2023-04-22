@@ -8,8 +8,9 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bzimmer/httpwares"
 )
 
 func TestRateLimit(t *testing.T) {
