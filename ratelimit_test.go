@@ -7,9 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/time/rate"
 
 	"github.com/bzimmer/httpwares"
 )
@@ -40,6 +39,7 @@ func TestRateLimit(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			svr := httptest.NewServer(mux)
 			defer svr.Close()
 
