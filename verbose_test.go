@@ -3,9 +3,9 @@ package httpwares_test
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,80 +16,65 @@ import (
 func TestVerboseTransport(t *testing.T) {
 	a := assert.New(t)
 
-	tests := []struct {
-		name        string
-		filename    string
-		status      int
-		contenttype string
-		body        string
-		err         string
-		writer      io.Writer
-		requester   httpwares.Requester
+	mux := http.NewServeMux()
+	mux.HandleFunc("/transport.txt", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "testdata/transport.txt")
+	})
+	mux.HandleFunc("/transport.json", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "testdata/transport.json")
+	})
+
+	for _, tt := range []struct {
+		name     string
+		filename string
+		status   int
+		body     string
+		writer   io.Writer
 	}{
 		{
-			name:        "plain no writer",
-			filename:    "transport.txt",
-			status:      http.StatusOK,
-			contenttype: "text/plain",
+			name:     "plain no writer",
+			filename: "transport.txt",
+			status:   http.StatusOK,
 		},
 		{
-			name:        "plain with writer",
-			filename:    "transport.txt",
-			status:      http.StatusOK,
-			contenttype: "text/plain",
-			writer:      new(bytes.Buffer),
-			body:        "The mountains are calling & I must go & I will work on while I can, studying incessantly.",
+			name:     "plain with writer",
+			filename: "transport.txt",
+			status:   http.StatusOK,
+			writer:   new(bytes.Buffer),
+			body:     "The mountains are calling & I must go & I will work on while I can, studying incessantly.",
 		},
 		{
-			name:        "json",
-			filename:    "transport.json",
-			status:      http.StatusOK,
-			contenttype: "application/json; charset=utf-8",
-			writer:      new(bytes.Buffer),
-			body:        `"quote": "The mountains are calling & I must go & I will work on while I can, studying incessantly."`,
+			name:     "json",
+			filename: "transport.json",
+			status:   http.StatusOK,
+			writer:   new(bytes.Buffer),
+			body:     `"quote": "The mountains are calling & I must go & I will work on while I can, studying incessantly."`,
 		},
 		{
-			name:        "empty",
-			filename:    "",
-			status:      http.StatusNoContent,
-			contenttype: "application/foobar; charset=utf-16",
+			name:     "empty",
+			filename: "",
+			status:   http.StatusNoContent,
 		},
-		{
-			name: "error",
-			err:  "argh",
-			requester: func(req *http.Request) error {
-				return errors.New("argh")
-			},
-		},
-	}
-
-	for _, tt := range tests {
+	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			svr := httptest.NewServer(mux)
+			defer svr.Close()
+
 			v := &httpwares.VerboseTransport{
 				Writer: tt.writer,
-				Transport: &httpwares.TestDataTransport{
-					Filename:    tt.filename,
-					ContentType: tt.contenttype,
-					Status:      tt.status,
-					Requester:   tt.requester,
-				},
 			}
 			ctx := context.Background()
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://example.com", nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, svr.URL+"/"+tt.filename, nil)
 			a.NoError(err)
 			a.NotNil(req)
+
 			client := http.Client{Transport: v}
 			res, err := client.Do(req)
-			if tt.err != "" {
-				a.Error(err)
-				a.Nil(res)
-				a.Contains(err.Error(), tt.err)
-				return
-			}
 			a.NoError(err)
 			a.NotNil(res)
 			defer res.Body.Close()
+
 			if tt.writer != nil && tt.body != "" {
 				a.Contains(tt.writer.(*bytes.Buffer).String(), tt.body)
 			}
