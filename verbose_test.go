@@ -8,8 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/bzimmer/httpwares"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bzimmer/httpwares"
 )
 
 func TestVerboseTransport(t *testing.T) {
