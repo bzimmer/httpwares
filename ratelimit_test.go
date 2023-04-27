@@ -28,7 +28,8 @@ func TestRateLimit(t *testing.T) {
 	limiter := rate.NewLimiter(rate.Every(1*time.Minute), 1)
 	client := http.Client{
 		Transport: &httpwares.RateLimitTransport{
-			Limiter: limiter,
+			Limiter:   limiter,
+			Transport: http.DefaultTransport,
 		},
 	}
 	ctx := context.Background()
