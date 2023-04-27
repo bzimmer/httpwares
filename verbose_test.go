@@ -8,9 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/bzimmer/httpwares"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestVerboseTransport(t *testing.T) {
@@ -22,6 +21,9 @@ func TestVerboseTransport(t *testing.T) {
 	})
 	mux.HandleFunc("/transport.json", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "testdata/transport.json")
+	})
+	mux.HandleFunc("/Nikon_D70.jpg", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "testdata/Nikon_D70.jpg")
 	})
 
 	for _, tt := range []struct {
@@ -51,6 +53,12 @@ func TestVerboseTransport(t *testing.T) {
 			body:     `"quote": "The mountains are calling & I must go & I will work on while I can, studying incessantly."`,
 		},
 		{
+			name:     "json",
+			filename: "Nikon_D70.jpg",
+			status:   http.StatusOK,
+			writer:   new(bytes.Buffer),
+		},
+		{
 			name:     "empty",
 			filename: "",
 			status:   http.StatusNoContent,
@@ -61,21 +69,21 @@ func TestVerboseTransport(t *testing.T) {
 			svr := httptest.NewServer(mux)
 			defer svr.Close()
 
-			v := &httpwares.VerboseTransport{
-				Writer: tt.writer,
+			client := http.Client{
+				Transport: &httpwares.VerboseTransport{Writer: tt.writer},
 			}
+
 			ctx := context.Background()
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, svr.URL+"/"+tt.filename, nil)
 			a.NoError(err)
 			a.NotNil(req)
 
-			client := http.Client{Transport: v}
 			res, err := client.Do(req)
 			a.NoError(err)
 			a.NotNil(res)
 			defer res.Body.Close()
 
-			if tt.writer != nil && tt.body != "" {
+			if tt.writer != nil {
 				a.Contains(tt.writer.(*bytes.Buffer).String(), tt.body)
 			}
 		})
