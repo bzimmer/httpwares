@@ -58,10 +58,6 @@ func (t *VerboseTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	if writer == nil {
 		writer = os.Stderr
 	}
-	transport := t.Transport
-	if transport == nil {
-		transport = http.DefaultTransport
-	}
 	out, err := httputil.DumpRequestOut(req, t.isText(req.Header))
 	if err != nil {
 		return nil, err
@@ -69,7 +65,7 @@ func (t *VerboseTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	if _, err = writer.Write(out); err != nil {
 		return nil, err
 	}
-	res, err := transport.RoundTrip(req)
+	res, err := transport(t.Transport).RoundTrip(req)
 	if err != nil {
 		return nil, err
 	}

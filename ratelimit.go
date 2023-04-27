@@ -19,9 +19,5 @@ func (t *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error
 			return nil, err
 		}
 	}
-	rt := t.Transport
-	if rt == nil {
-		rt = http.DefaultTransport
-	}
-	return rt.RoundTrip(req)
+	return transport(t.Transport).RoundTrip(req)
 }
