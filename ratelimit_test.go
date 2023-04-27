@@ -22,49 +22,34 @@ func TestRateLimit(t *testing.T) {
 		http.ServeFile(w, r, "testdata/transport.json")
 	})
 
-	tests := []struct {
-		name string
-		dur  time.Duration
-	}{
-		{
-			name: "zero",
-			dur:  0 * time.Millisecond,
-		},
-		{
-			name: "with a duration",
-			dur:  250 * time.Millisecond,
+	svr := httptest.NewServer(mux)
+	defer svr.Close()
+
+	limiter := rate.NewLimiter(rate.Every(1*time.Minute), 1)
+	client := http.Client{
+		Transport: &httpwares.RateLimitTransport{
+			Limiter: limiter,
 		},
 	}
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, svr.URL+"/transport.json", nil)
+	a.NoError(err)
+	a.NotNil(req)
 
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			svr := httptest.NewServer(mux)
-			defer svr.Close()
+	res, err := client.Do(req)
+	a.NoError(err)
+	a.NotNil(req)
+	a.NoError(res.Body.Close())
 
-			limiter := rate.NewLimiter(rate.Every(1*time.Minute), 1)
-			client := http.Client{
-				Transport: &httpwares.RateLimitTransport{
-					Limiter: limiter,
-				},
-			}
+	var cancel func()
+	ctx, cancel = context.WithTimeout(ctx, 250*time.Millisecond)
+	defer cancel()
 
-			ctx := context.Background()
-			if tt.dur > (0 * time.Millisecond) {
-				var cancel func()
-				ctx, cancel = context.WithTimeout(ctx, time.Millisecond*250)
-				defer cancel()
-			}
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, svr.URL+"/transport.json", nil)
+	a.NoError(err)
+	a.NotNil(req)
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, svr.URL+"/transport.json", nil)
-			a.NoError(err)
-			a.NotNil(req)
-
-			res, err := client.Do(req)
-			a.NoError(err)
-			a.NotNil(res)
-			a.NoError(res.Body.Close())
-		})
-	}
+	res, err = client.Do(req)
+	a.Error(err)
+	a.Nil(res)
 }
